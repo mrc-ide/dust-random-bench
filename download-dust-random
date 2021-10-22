@@ -1,0 +1,16 @@
+#!/bin/bash
+DUST_RANDOM=https://github.com/mrc-ide/dust/releases/latest/download/dust-random.tar.gz
+
+if [[ -e dust ]]; then
+    while true; do
+        read -p "'dust' already exists. Delete and redownload? [y/N] " yn
+        case $yn in
+            [Yy]* )
+                break;;
+            * )
+                exit 1;;
+        esac
+    done
+fi
+
+curl -L $DUST_RANDOM | tar -zxf -
