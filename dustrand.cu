@@ -1,16 +1,15 @@
 // -*-c++-*-
-
 #include <chrono>
 #include <iostream>
 
-// This needs to be put into numeric.hpp, I think
+// This needs to be put into numeric.hpp, I think, then the following
+// bits need re-adding to the dust includes (note that ALIGN and
+// KERNEL are missing here are they're not used in the library)
 #include <cfloat>
 
 #define DEVICE __device__
 #define HOST __host__
 #define HOSTDEVICE __host__ __device__
-#define KERNEL __global__
-#define ALIGN(n) __align__(n)
 
 #define __nv_exec_check_disable__ _Pragma("nv_exec_check_disable")
 
@@ -110,7 +109,6 @@ void sample_poisson(rng_int_type * rng_state_data,
     for (int j = 0; j < ndraws; ++j) {
       float new_draw = dust::random::poisson<float>(rng_block, 1);
       draw += new_draw;
-      SYNCWARP;
     }
     draws[i] = draw;
 
@@ -129,7 +127,6 @@ void sample_binomial(rng_int_type * rng_state_data,
     for (int j = 0; j < ndraws; ++j) {
       float new_draw = dust::random::binomial<float>(rng_block, 10, 0.3);
       draw += new_draw;
-      SYNCWARP;
     }
     draws[i] = draw;
 
@@ -138,8 +135,6 @@ void sample_binomial(rng_int_type * rng_state_data,
 }
 
 void run(const char * distribution_name, size_t nthreads, size_t ndraws) {
-  // using namespace std::chrono;
-
   auto distribution_type = check_distribution(distribution_name);
   float* draws;
   CUDA_CALL(cudaMalloc((void**)&draws, nthreads * sizeof(float)));
@@ -215,15 +210,14 @@ void run(const char * distribution_name, size_t nthreads, size_t ndraws) {
 
 int main(int argc, char *argv[]) {
   if (argc != 4) {
-    std::cout << "Usage: curand <type> <nthreads> <ndraws>" << std::endl;
+    std::cout << "Usage: dustrand <type> <nthreads> <ndraws>" << std::endl;
     return 1;
   }
 
-  auto type_str = argv[1];
-  auto nthreads = std::stoi(argv[2]);
-  auto ndraws = std::stoi(argv[3]);
-
   try {
+    auto type_str = argv[1];
+    auto nthreads = std::stoi(argv[2]);
+    auto ndraws = std::stoi(argv[3]);
     run(type_str, nthreads, ndraws);
   } catch (const std::exception& e) {
     std::cout << "Error: " << e.what() << std::endl;
