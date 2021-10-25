@@ -2,15 +2,12 @@
 // See the nvidia docs:
 // https://docs.nvidia.com/cuda/curand/device-api-overview.html#poisson-api-example
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <chrono>
+#include <iostream>
+
 #include <cuda.h>
 #include <curand_kernel.h>
 #include <curand.h>
-#include <chrono>
-#include <iostream>
-#include <string>
-#include <vector>
 
 #define CUDA_CALL(x) do { if((x) != cudaSuccess) { \
     printf("Error at %s:%d\n",__FILE__,__LINE__); \
@@ -46,9 +43,6 @@ void sample_uniform(curandState *state, float *draws,
 
 int main(int argc, char *argv[]) {
   using namespace std::chrono;
-
-  curandState *devStates;
-
   if (argc != 3) {
     std::cout << "Usage: curand <nthreads> <ndraws>" << std::endl;
     return 1;
@@ -57,6 +51,7 @@ int main(int argc, char *argv[]) {
   const long nthreads = std::stoi(argv[1]);
   const int ndraws = std::stoi(argv[2]);
 
+  curandState *devStates;
   float* draws;
   CUDA_CALL(cudaMalloc((void**)&draws, nthreads * sizeof(float)));
   CUDA_CALL(cudaMalloc((void **)&devStates, nthreads *
