@@ -23,40 +23,7 @@
 #define SYNCWARP
 #endif
 
-namespace dust {
-namespace cuda {
-
-static void throw_cuda_error(const char *file, int line, cudaError_t status) {
-  std::stringstream msg;
-  if (status == cudaErrorUnknown) {
-    msg << file << "(" << line << ") An Unknown CUDA Error Occurred :(";
-  } else {
-    msg << file << "(" << line << ") CUDA Error Occurred:\n" <<
-      cudaGetErrorString(status);
-  }
-#ifdef DUST_ENABLE_CUDA_PROFILER
-  cudaProfilerStop();
-#endif
-  throw std::runtime_error(msg.str());
-}
-
-static void handle_cuda_error(const char *file, int line,
-                              cudaError_t status = cudaGetLastError()) {
-#ifdef _DEBUG
-  cudaDeviceSynchronize();
-#endif
-
-  if (status != cudaSuccess || (status = cudaGetLastError()) != cudaSuccess) {
-    throw_cuda_error(file, line, status);
-  }
-}
-
-}
-}
-
-#define CUDA_CALL( err ) (dust::cuda::handle_cuda_error(__FILE__, __LINE__ , err))
-#define CUDA_CALL_NOTHROW( err ) (err)
-
+#include "common.hpp"
 #include <dust/random/random.hpp>
 #include "helper.hpp"
 
@@ -72,25 +39,6 @@ using rng_int_type = rng_state_type::int_type;
 //   }
 //   return rng_state;
 // }
-
-template <typename T, typename U>
-__device__
-T get_rng_state(const U& full_rng_state) {
-  T rng_state;
-  for (size_t i = 0; i < rng_state.size(); i++) {
-    rng_state.state[i] = full_rng_state[i];
-  }
-  return rng_state;
-}
-
-template <typename T>
-__device__
-void put_rng_state(T& rng_state,
-                   interleaved<typename T::int_type>& full_rng_state) {
-  for (size_t i = 0; i < rng_state.size(); i++) {
-    full_rng_state[i] = rng_state.state[i];
-  }
-}
 
 device_array<rng_int_type> load_rng(const size_t n) {
   // This is currently done in series on the cpu, and will be quite slow.
