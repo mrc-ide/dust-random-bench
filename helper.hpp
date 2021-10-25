@@ -127,23 +127,3 @@ private:
   T* data_;
   size_t size_;
 };
-
-// TODO: only one of these needed
-template <typename T, typename U>
-size_t stride_copy(T dest, U src, size_t at, size_t stride) {
-  static_assert(!std::is_reference<T>::value,
-                "stride_copy should only be used with reference types");
-  dest[at] = src;
-  return at + stride;
-}
-
-template <typename T, typename U>
-size_t stride_copy(T dest, const std::vector<U>& src, size_t at,
-                   size_t stride) {
-  static_assert(!std::is_reference<T>::value,
-                "stride_copy should only be used with reference types");
-  for (size_t i = 0; i < src.size(); ++i, at += stride) {
-    dest[at] = src[i];
-  }
-  return at;
-}

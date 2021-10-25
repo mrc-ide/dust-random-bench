@@ -30,36 +30,6 @@
 using rng_state_type = dust::random::xoshiro128plus_state;
 using rng_int_type = rng_state_type::int_type;
 
-// template <typename T>
-// __device__
-// T get_rng_state(const interleaved<typename T::int_type>& full_rng_state) {
-//   T rng_state;
-//   for (size_t i = 0; i < rng_state.size(); i++) {
-//     rng_state.state[i] = full_rng_state[i];
-//   }
-//   return rng_state;
-// }
-
-device_array<rng_int_type> load_rng(const size_t n) {
-  // This is currently done in series on the cpu, and will be quite slow.
-  const int seed = 42;
-  dust::random::prng<rng_state_type> rng(n, seed);
-  constexpr auto rng_len = rng_state_type::size();
-
-  std::vector<rng_int_type> rng_i(n * rng_len);
-  for (size_t i = 0; i < n; ++i) {
-    auto p = rng.state(i);
-    size_t rng_offset = i;
-    for (size_t j = 0; j < rng_len; ++j) {
-      rng_offset = stride_copy(rng_i.data(), p[j], rng_offset, n);
-    }
-  }
-
-  device_array<rng_int_type> rng_d(n * rng_len);
-  rng_d.set_array(rng_i);
-  return rng_d;
-}
-
 __global__
 void sample_uniform(rng_int_type * rng_state,
                     float *draws, const long nthreads, const int ndraws) {
@@ -67,9 +37,6 @@ void sample_uniform(rng_int_type * rng_state,
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < nthreads; i += dx) {
     interleaved<rng_int_type> p_rng(rng_state, static_cast<size_t>(i), static_cast<size_t>(nthreads));
 
-    // TODO: this should be do-able with
-    // rng_state_type rng_block = get_rng_state(p_rng);
-    // But that's not working and it's also not very nice!
     rng_state_type rng_block;
     for (size_t j = 0; j < rng_block.size(); j++) {
       rng_block.state[j] = p_rng[j];
@@ -108,7 +75,27 @@ int main(int argc, char *argv[]) {
   const size_t blockCount = (nthreads + blockSize - 1) / blockSize;
 
   auto t0_setup = high_resolution_clock::now();
-  auto rng_state = load_rng(nthreads);
+
+  // This is currently done in series on the cpu, and will be quite slow.
+
+  // First, initialise all random number generators
+  const int seed = 42;
+  dust::random::prng<rng_state_type> rng(nthreads, seed);
+  constexpr auto rng_len = rng_state_type::size();
+
+  // Then create a vector of integers representing the underlying
+  // random number state, interleaved.
+  std::vector<rng_int_type> rng_interleaved(nthreads * rng_len);
+  for (size_t i = 0; i < nthreads; ++i) {
+    auto p = rng.state(i);
+    for (size_t j = 0, at = i; j < rng_len; ++j, at += nthreads) {
+      rng_interleaved[at] = p[j];
+    }
+  }
+
+  device_array<rng_int_type> rng_state(nthreads * rng_len);
+  rng_state.set_array(rng_interleaved);
+
   auto t1_setup = high_resolution_clock::now();
 
   auto t0_sample = high_resolution_clock::now();
