@@ -9,7 +9,6 @@
 #include <curand_kernel.h>
 #include <curand.h>
 
-#include "cuda_call.hpp"
 #include "common.hpp"
 
 __global__
