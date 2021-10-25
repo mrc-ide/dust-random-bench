@@ -93,13 +93,15 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  device_array<rng_int_type> rng_state(nthreads * rng_len);
-  rng_state.set_array(rng_interleaved);
-
+  rng_int_type* rng_state;
+  const size_t len = nthreads * rng_len * sizeof(rng_int_type);
+  CUDA_CALL(cudaMalloc((void**)&rng_state, len));
+  CUDA_CALL(cudaMemcpy(rng_state, rng_interleaved.data(), len,
+                       cudaMemcpyDefault));
   auto t1_setup = high_resolution_clock::now();
 
   auto t0_sample = high_resolution_clock::now();
-  sample_uniform<<<blockCount, blockSize>>>(rng_state.data(), draws,
+  sample_uniform<<<blockCount, blockSize>>>(rng_state, draws,
                                             nthreads, ndraws);
   CUDA_CALL(cudaDeviceSynchronize());
   auto t1_sample = high_resolution_clock::now();
@@ -112,4 +114,7 @@ int main(int argc, char *argv[]) {
     ", t_setup: " << t_setup.count() <<
     ", t_sample: " << t_sample.count() <<
     std::endl;
+
+  CUDA_CALL(cudaFree(draws));
+  CUDA_CALL(cudaFree(rng_state));
 }

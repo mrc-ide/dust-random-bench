@@ -10,11 +10,6 @@ public:
     stride_(stride) {
   }
 
-  // template <typename Container>
-  // DEVICE interleaved(Container& data, size_t offset, size_t stride) :
-  //   interleaved(data.data(), offset, stride) {
-  // }
-
   DEVICE T& operator[](size_t i) {
     return data_[i * stride_];
   }
@@ -35,95 +30,4 @@ private:
   // TODO: these can be set as const.
   T* data_;
   size_t stride_;
-};
-
-template <typename T>
-class device_array {
-public:
-  device_array() : data_(nullptr), size_(0) {
-  }
-
-  device_array(const size_t size) : size_(size) {
-    CUDA_CALL(cudaMalloc((void**)&data_, size_ * sizeof(T)));
-    CUDA_CALL(cudaMemset(data_, 0, size_ * sizeof(T)));
-  }
-
-  // Constructor from vector
-  device_array(const std::vector<T>& data) : size_(data.size()) {
-    CUDA_CALL(cudaMalloc((void**)&data_, size_ * sizeof(T)));
-    CUDA_CALL(cudaMemcpy(data_, data.data(), size_ * sizeof(T),
-                         cudaMemcpyDefault));
-  }
-
-  device_array(const device_array& other) : size_(other.size_) {
-    CUDA_CALL(cudaMalloc((void**)&data_, size_ * sizeof(T)));
-    CUDA_CALL(cudaMemcpy(data_, other.data_, size_ * sizeof(T),
-                         cudaMemcpyDefault));
-  }
-
-  device_array& operator=(const device_array& other) {
-    if (this != &other) {
-      size_ = other.size_;
-      CUDA_CALL(cudaFree(data_));
-      CUDA_CALL(cudaMalloc((void**)&data_, size_ * sizeof(T)));
-      CUDA_CALL(cudaMemcpy(data_, other.data_, size_ * sizeof(T),
-                           cudaMemcpyDefault));
-    }
-    return *this;
-  }
-
-  device_array(device_array&& other) : data_(nullptr), size_(0) {
-    data_ = other.data_;
-    size_ = other.size_;
-    other.data_ = nullptr;
-    other.size_ = 0;
-  }
-
-  device_array& operator=(device_array&& other) {
-    if (this != &other) {
-      CUDA_CALL(cudaFree(data_));
-      data_ = other.data_;
-      size_ = other.size_;
-      other.data_ = nullptr;
-      other.size_ = 0;
-    }
-    return *this;
-  }
-
-  ~device_array() {
-    CUDA_CALL(cudaFree(data_));
-  }
-
-  void get_array(std::vector<T>& dst) const {
-    CUDA_CALL(cudaMemcpy(dst.data(), data_, dst.size() * sizeof(T),
-                         cudaMemcpyDefault));
-  }
-
-  // General method to set the device array, allowing src to be written
-  // into the device data_ array starting at dst_offset
-  void set_array(const T* src, const size_t src_size,
-                 const size_t dst_offset) {
-    CUDA_CALL(cudaMemcpy(data_ + dst_offset, src,
-                         src_size * sizeof(T), cudaMemcpyDefault));
-  }
-
-  // Specialised form to set the device array, writing all of src into
-  // the device data_
-  void set_array(const std::vector<T>& src) {
-    size_ = src.size();
-    CUDA_CALL(cudaMemcpy(data_, src.data(), size_ * sizeof(T),
-                         cudaMemcpyDefault));
-  }
-
-  T* data() {
-    return data_;
-  }
-
-  size_t size() const {
-    return size_;
-  }
-
-private:
-  T* data_;
-  size_t size_;
 };
