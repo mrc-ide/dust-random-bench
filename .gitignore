@@ -1,4 +1,4 @@
 dust
 curand
 dustrand
-bench-*.csv
+*.ncp-rep

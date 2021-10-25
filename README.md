@@ -40,3 +40,12 @@ For both engines as the number of draws increase we approach a stable time per s
 Performance for the two generators is very siumilar, with the ratio of performance approaching 1 over a range of number of number of threads. curand does better for small numbers of draws per thread, dust genreally seems to do slightly better for very large numbers of threads or large numbers of draws per threads.
 
 ![Plot of relative performance vs numbers of draws for the two engines](figs/sample-rel.png)
+
+
+## Profiling
+
+You can also profile these kernels with `ncu`
+
+```
+ncu -o profile-uniform --set full ./dustrand uniform 131072 1000000
+```
