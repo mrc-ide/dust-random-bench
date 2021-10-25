@@ -25,22 +25,32 @@
 
 #include "common.hpp"
 #include <dust/random/random.hpp>
-#include "helper.hpp"
 
 using rng_state_type = dust::random::xoshiro128plus_state;
 using rng_int_type = rng_state_type::int_type;
 
+__device__
+rng_state_type get_rng(const rng_int_type * data, size_t index, size_t n) {
+  rng_state_type ret;
+  for (size_t i = 0, j = i; i < ret.size(); ++i, j += n) {
+    ret[i] = data[j];
+  }
+  return ret;
+}
+
+__device__
+void set_rng(rng_state_type& rng, rng_int_type * data, size_t n) {
+  for (size_t i = 0, j = i; i < rng.size(); ++i, j += n) {
+    data[j] = rng[i];
+  }
+}
+
 __global__
-void sample_uniform(rng_int_type * rng_state,
+void sample_uniform(rng_int_type * rng_state_data,
                     float *draws, const long nthreads, const int ndraws) {
   const int dx = blockDim.x * gridDim.x;
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < nthreads; i += dx) {
-    interleaved<rng_int_type> p_rng(rng_state, static_cast<size_t>(i), static_cast<size_t>(nthreads));
-
-    rng_state_type rng_block;
-    for (size_t j = 0; j < rng_block.size(); j++) {
-      rng_block.state[j] = p_rng[j];
-    }
+    auto rng_block = get_rng(rng_state_data, i, nthreads);
 
     float draw = 0;
     for (int j = 0; j < ndraws; ++j) {
@@ -50,10 +60,7 @@ void sample_uniform(rng_int_type * rng_state,
     }
     draws[i] = draw;
 
-    // TODO: Tidy this up; could use put_rng_state in a bit I think?
-    for (size_t j = 0; j < rng_block.size(); j++) {
-      p_rng[j] = rng_block.state[j];
-    }
+    set_rng(rng_block, rng_state_data, nthreads);
   }
 }
 

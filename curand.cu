@@ -54,12 +54,13 @@ int main(int argc, char *argv[]) {
   curandState *devStates;
   float* draws;
   CUDA_CALL(cudaMalloc((void**)&draws, nthreads * sizeof(float)));
-  CUDA_CALL(cudaMalloc((void **)&devStates, nthreads * sizeof(curandState)));
 
   const size_t blockSize = 128;
   const size_t blockCount = (nthreads + blockSize - 1) / blockSize;
 
   auto t0_setup = high_resolution_clock::now();
+  CUDA_CALL(cudaMalloc((void **)&devStates, nthreads * sizeof(curandState)));
+
   setup_kernel<<<blockCount, blockSize>>>(devStates, nthreads);
   CUDA_CALL(cudaDeviceSynchronize());
   auto t1_setup = high_resolution_clock::now();
