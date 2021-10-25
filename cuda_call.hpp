@@ -1,3 +1,7 @@
+#pragma once
+
+#include <sstream>
+
 static void throw_cuda_error(const char *file, int line, cudaError_t status) {
   std::stringstream msg;
   if (status == cudaErrorUnknown) {
@@ -24,4 +28,3 @@ static void handle_cuda_error(const char *file, int line,
 }
 
 #define CUDA_CALL( err ) (handle_cuda_error(__FILE__, __LINE__ , err))
-#define CUDA_CALL_NOTHROW( err ) (err)

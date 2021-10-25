@@ -2,7 +2,6 @@
 
 #include <chrono>
 #include <iostream>
-#include <sstream>
 
 // This needs to be put into numeric.hpp, I think
 #include <cfloat>
@@ -23,7 +22,7 @@
 #define SYNCWARP
 #endif
 
-#include "common.hpp"
+#include "cuda_call.hpp"
 #include <dust/random/random.hpp>
 
 using rng_state_type = dust::random::xoshiro128plus_state;
