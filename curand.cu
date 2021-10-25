@@ -12,21 +12,21 @@
 #include "common.hpp"
 
 __global__
-void setup_kernel(curandState *state, const long nthreads) {
+void setup_kernel(curandState *state, const long n_threads) {
   const int dx = blockDim.x * gridDim.x;
-  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < nthreads; i += dx) {
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < n_threads; i += dx) {
     curand_init(1234, i, 0, &state[i]);
   }
 }
 
 __global__
 void sample_uniform(curandState *state, float *draws,
-                    const long nthreads, const int ndraws) {
+                    const long n_threads, const int n_draws) {
   const int dx = blockDim.x * gridDim.x;
-  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < nthreads; i += dx) {
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < n_threads; i += dx) {
     curandState localState = state[i];
     float draw = 0;
-    for (int j = 0; j < ndraws; ++j) {
+    for (int j = 0; j < n_draws; ++j) {
       float new_draw = curand_uniform(&localState);
       draw += new_draw;
     }
@@ -37,12 +37,12 @@ void sample_uniform(curandState *state, float *draws,
 
 __global__
 void sample_normal(curandState *state, float *draws,
-                   const long nthreads, const int ndraws) {
+                   const long n_threads, const int n_draws) {
   const int dx = blockDim.x * gridDim.x;
-  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < nthreads; i += dx) {
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < n_threads; i += dx) {
     curandState localState = state[i];
     float draw = 0;
-    for (int j = 0; j < ndraws; ++j) {
+    for (int j = 0; j < n_draws; ++j) {
       float new_draw = curand_normal(&localState);
       draw += new_draw;
     }
@@ -53,12 +53,12 @@ void sample_normal(curandState *state, float *draws,
 
 __global__
 void sample_poisson(curandState *state, float *draws,
-                    const long nthreads, const int ndraws) {
+                    const long n_threads, const int n_draws) {
   const int dx = blockDim.x * gridDim.x;
-  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < nthreads; i += dx) {
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < n_threads; i += dx) {
     curandState localState = state[i];
     float draw = 0;
-    for (int j = 0; j < ndraws; ++j) {
+    for (int j = 0; j < n_draws; ++j) {
       float new_draw = curand_poisson(&localState, 1);
       draw += new_draw;
     }
@@ -67,36 +67,36 @@ void sample_poisson(curandState *state, float *draws,
   }
 }
 
-void run(const char * distribution_name, size_t nthreads, size_t ndraws) {
+void run(const char * distribution_name, size_t n_threads, size_t n_draws) {
   auto distribution_type = check_distribution(distribution_name);
 
   curandState *devStates;
   float* draws;
-  CUDA_CALL(cudaMalloc((void**)&draws, nthreads * sizeof(float)));
+  CUDA_CALL(cudaMalloc((void**)&draws, n_threads * sizeof(float)));
 
   const size_t blockSize = 128;
-  const size_t blockCount = (nthreads + blockSize - 1) / blockSize;
+  const size_t blockCount = (n_threads + blockSize - 1) / blockSize;
 
   auto t0_setup = std::chrono::high_resolution_clock::now();
-  CUDA_CALL(cudaMalloc((void **)&devStates, nthreads * sizeof(curandState)));
+  CUDA_CALL(cudaMalloc((void **)&devStates, n_threads * sizeof(curandState)));
 
-  setup_kernel<<<blockCount, blockSize>>>(devStates, nthreads);
+  setup_kernel<<<blockCount, blockSize>>>(devStates, n_threads);
   CUDA_CALL(cudaDeviceSynchronize());
   auto t1_setup = std::chrono::high_resolution_clock::now();
 
   auto t0_sample = std::chrono::high_resolution_clock::now();
   switch (distribution_type) {
   case UNIFORM:
-    sample_uniform<<<blockCount, blockSize>>>(devStates, draws, nthreads,
-                                              ndraws);
+    sample_uniform<<<blockCount, blockSize>>>(devStates, draws, n_threads,
+                                              n_draws);
     break;
   case NORMAL:
-    sample_normal<<<blockCount, blockSize>>>(devStates, draws, nthreads,
-                                             ndraws);
+    sample_normal<<<blockCount, blockSize>>>(devStates, draws, n_threads,
+                                             n_draws);
     break;
   case POISSON:
-    sample_poisson<<<blockCount, blockSize>>>(devStates, draws, nthreads,
-                                              ndraws);
+    sample_poisson<<<blockCount, blockSize>>>(devStates, draws, n_threads,
+                                              n_draws);
     break;
   default:
     std::stringstream msg;
@@ -113,9 +113,10 @@ void run(const char * distribution_name, size_t nthreads, size_t ndraws) {
   std::chrono::duration<double> t_sample = t1_sample - t0_sample;
 
   std::cout <<
-    "distribution: " << distribution_name <<
-    ", nthreads: " << nthreads <<
-    ", ndraws: " << ndraws <<
+    "engine: curand" <<
+    ", distribution: " << distribution_name <<
+    ", n_threads: " << n_threads <<
+    ", n_draws: " << n_draws <<
     ", t_setup: " << t_setup.count() <<
     ", t_sample: " << t_sample.count() <<
     std::endl;
@@ -123,15 +124,15 @@ void run(const char * distribution_name, size_t nthreads, size_t ndraws) {
 
 int main(int argc, char *argv[]) {
   if (argc != 4) {
-    std::cout << "Usage: curand <type> <nthreads> <ndraws>" << std::endl;
+    std::cout << "Usage: curand <type> <n_threads> <n_draws>" << std::endl;
     return 1;
   }
 
   try {
     auto type_str = argv[1];
-    const long nthreads = std::stoi(argv[2]);
-    const int ndraws = std::stoi(argv[3]);
-    run(type_str, nthreads, ndraws);
+    const long n_threads = std::stoi(argv[2]);
+    const int n_draws = std::stoi(argv[3]);
+    run(type_str, n_threads, n_draws);
   } catch (const std::exception& e) {
     std::cout << "Error: " << e.what() << std::endl;
     return 1;
