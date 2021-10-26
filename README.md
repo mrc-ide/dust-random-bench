@@ -53,8 +53,16 @@ Performance for the two generators is very siumilar, with the ratio of performan
 
 ## Profiling
 
-You can also profile these kernels with `ncu`
+You can also profile these kernels with `ncu`.  First, make sure to compile with profiling enabled:
 
 ```
-ncu -o profile-uniform --set full ./dustrand uniform 131072 1000000
+./configure --enable-profiler
+make clean all
+```
+
+Then run like
+
+```
+ncu -o profile-uniform-dust --set full ./dustrand uniform 131072 1000000
+ncu -o profile-uniform-curand --set full ./curand uniform 131072 1000000
 ```

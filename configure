@@ -1,6 +1,46 @@
 #!/bin/bash
 
-if [ "$#" -eq 0 ]; then
+COMPUTE_VERSION=
+PROFILER_FLAGS=
+
+USAGE="./configure [--enable-profiler] [--compute-version <version>]"
+
+function check_compute_version() {
+    if [[ -n "$COMPUTE_VERISON" ]]; then
+        echo $USAGE
+        exit 1
+    fi
+    COMPUTE_VERSION=$1
+}
+
+
+while (($#)) ; do
+    if [[ $1 == "--enable-profiler" ]]; then
+        PROFILER_FLAGS="-pg --generate-line-info"
+    elif [[ $1 == "--compute-version" ]]; then
+        if [ "$#" -lt 2 ]; then
+            echo $USAGE
+            exit 1
+        fi
+        check_compute_version $2
+        shift
+    elif [[ "$1" =~ "--compute-version=" ]]; then
+        check_compute_version ${1#*=}
+    else
+        echo "$USAGE"
+        exit 1
+    fi
+    shift
+done
+
+if [[ -n $PROFILER_FLAGS ]]; then
+    echo "Enabling profiler"
+fi
+
+if [[ -n $COMPUTE_VERSION ]]; then
+    echo "Using provided compute version $COMPUTE_VERSION"
+else
+    echo -n "Detecting supported compute version"...
     # temp dir that works on both linux osx
     WORKDIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')
     function cleanup() {
@@ -29,15 +69,11 @@ EOF
 
     (cd $WORKDIR && nvcc -o detect detect.cu)
     COMPUTE_VERSION=$($WORKDIR/detect)
-    echo "Detected compute version $COMPUTE_VERSION"
-elif [ "$#" -eq 1 ]; then
-    COMPUTE_VERSION=$1
-    echo "Using provided compute version $COMPUTE_VERSION"
-else
-    echo "Usage: ./configure [<version>]"
-    exit 1
+    echo "found version $COMPUTE_VERSION"
 fi
 
 echo "Writing Makefile"
-sed -e "s|@compute_version@|$COMPUTE_VERSION|" Makefile.in > Makefile
+sed -e "s|@compute_version@|$COMPUTE_VERSION|" \
+    -e "s|@profiler_flags@|$PROFILER_FLAGS|" \
+    Makefile.in > Makefile
 echo "Now run 'make'"
