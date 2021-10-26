@@ -1,0 +1,43 @@
+#!/bin/bash
+
+if [ "$#" -eq 0 ]; then
+    # temp dir that works on both linux osx
+    WORKDIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')
+    function cleanup() {
+        rm -rf $WORKDIR
+    }
+    trap cleanup EXIT
+
+    cat <<EOF > $WORKDIR/detect.cu
+#include <iostream>
+#include "common.hpp"
+int main() {
+  try {
+    int device_count = 0;
+    cudaDeviceProp properties;
+    CUDA_CALL(cudaGetDeviceCount(&device_count));
+    CUDA_CALL(cudaGetDeviceProperties(&properties, 0));
+    std::cout << (properties.major * 10 + properties.minor) << std::endl;
+  } catch (const std::exception& e) {
+    std::cout << "Error: " << e.what() << std::endl;
+    return 1;
+  }
+  return 0;
+}
+EOF
+    cp common.hpp $WORKDIR
+
+    (cd $WORKDIR && nvcc -o detect detect.cu)
+    COMPUTE_VERSION=$($WORKDIR/detect)
+    echo "Detected compute version $COMPUTE_VERSION"
+elif [ "$#" -eq 1 ]; then
+    COMPUTE_VERSION=$1
+    echo "Using provided compute version $COMPUTE_VERSION"
+else
+    echo "Usage: ./configure [<version>]"
+    exit 1
+fi
+
+echo "Writing Makefile"
+sed -e "s|@compute_version@|$COMPUTE_VERSION|" Makefile.in > Makefile
+echo "Now run 'make'"

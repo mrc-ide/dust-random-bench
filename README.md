@@ -2,7 +2,16 @@
 
 This repository explores benchmarking dust's random number generator on GPU vs "curand" (the built-in random number library that we decided not to use).  Our random number generators are described [in the dust docs](https://mrc-ide.github.io/dust/articles/rng.html) and our reasons for the decisions we made are [in the last section of that document](https://mrc-ide.github.io/dust/articles/rng.html#other-packages-with-similar-functionality-1). In particular, we want random numbers that can be created identically on the CPU and GPU, do not depend on the number of threads, and which support per-draw parameter changes.
 
-To compile, run `make` which will download the latest dust-random release and build two binaries (`curand` and `dustrand`).
+## Compilation and use
+
+Compilation requires knowing the compute mode of your device; this will likey be
+
+* 75 (Turing), e.g. GeForce RTX 2080 Ti
+* 86 (Ampere), e.g. GeForce RTX 3090, A5000, A100
+
+Running `./configure` with no arguments will attempt to detect this by compiling a very small program with `nvcc`. You can also force a version by running `./configure 86`.
+
+After configuration, run `make` which will download the latest dust-random release and build two binaries (`curand` and `dustrand`).
 
 These binaries take positional arguments `<distribution> <n_threads> <n_draws>`, for example
 

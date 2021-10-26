@@ -2,3 +2,4 @@ dust
 curand
 dustrand
 *.ncp-rep
+Makefile

@@ -1,5 +1,6 @@
+COMPUTE_VERSION=@compute_version@
 CXXFLAGS=-O2 -std=c++11 --compiler-options="-Wall"
-CUDAFLAGS=-Xptxas -dlcm=ca --cudart static -gencode arch=compute_75,code=sm_75
+CUDAFLAGS=-Xptxas -dlcm=ca --cudart static -gencode arch=compute_$(COMPUTE_VERSION),code=sm_$(COMPUTE_VERSION)
 
 TARGETS=curand dustrand
 
