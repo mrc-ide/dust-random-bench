@@ -3,7 +3,6 @@
 #include <iostream>
 
 #include "common.hpp"
-#include "compatibility.hpp" // will be removed soonish
 #include <dust/random/random.hpp>
 
 using rng_state_type = dust::random::xoshiro128plus_state;
