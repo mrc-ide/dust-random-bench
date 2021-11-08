@@ -53,7 +53,25 @@ void sample_normal(rng_int_type * rng_state_data,
 
     float draw = 0;
     for (int j = 0; j < n_draws; ++j) {
-      float new_draw = dust::random::normal<float>(rng_block, 0, 1);
+      float new_draw = dust::random::random_normal<float>(rng_block);
+      draw += new_draw;
+    }
+    draws[i] = draw;
+
+    set_rng(rng_block, rng_state_data, n_threads);
+  }
+}
+
+__global__
+void sample_normal_ziggurat(rng_int_type * rng_state_data,
+                            float *draws, size_t n_threads, size_t n_draws) {
+  const int dx = blockDim.x * gridDim.x;
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < n_threads; i += dx) {
+    auto rng_block = get_rng<rng_state_type>(rng_state_data, i, n_threads);
+
+    float draw = 0;
+    for (int j = 0; j < n_draws; ++j) {
+      float new_draw = dust::random::random_normal_ziggurat<float>(rng_block);
       draw += new_draw;
     }
     draws[i] = draw;
@@ -158,6 +176,10 @@ void run(const char * distribution_name, size_t n_threads, size_t n_draws) {
   case NORMAL:
     sample_normal<<<blockCount, blockSize>>>(rng_state, draws,
                                               n_threads, n_draws);
+    break;
+  case NORMAL_ZIGGURAT:
+    sample_normal_ziggurat<<<blockCount, blockSize>>>(rng_state, draws,
+                                                      n_threads, n_draws);
     break;
   case EXPONENTIAL:
     sample_exponential<<<blockCount, blockSize>>>(rng_state, draws,

@@ -3,7 +3,8 @@
 #include <sstream>
 #include <string>
 
-enum distribution { UNIFORM, NORMAL, EXPONENTIAL, POISSON, BINOMIAL };
+enum distribution { UNIFORM, NORMAL, NORMAL_ZIGGURAT, EXPONENTIAL, POISSON,
+                    BINOMIAL };
 
 distribution check_distribution(std::string name) {
   distribution ret;
@@ -11,6 +12,8 @@ distribution check_distribution(std::string name) {
     ret = UNIFORM;
   } else if (name == "normal") {
     ret = NORMAL;
+  } else if (name == "normal_ziggurat") {
+    ret = NORMAL_ZIGGURAT;
   } else if (name == "exponential") {
     ret = EXPONENTIAL;
   } else if (name == "poisson") {
