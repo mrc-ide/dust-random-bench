@@ -90,7 +90,7 @@ void run(const char * distribution_name, size_t n_threads, size_t n_draws) {
     sample_uniform<<<blockCount, blockSize>>>(devStates, draws, n_threads,
                                               n_draws);
     break;
-  case NORMAL:
+  case NORMAL_BOX_MULLER:
     sample_normal<<<blockCount, blockSize>>>(devStates, draws, n_threads,
                                              n_draws);
     break;

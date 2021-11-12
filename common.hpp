@@ -3,15 +3,17 @@
 #include <sstream>
 #include <string>
 
-enum distribution { UNIFORM, NORMAL, NORMAL_ZIGGURAT, EXPONENTIAL, POISSON,
-                    BINOMIAL };
+enum distribution { UNIFORM, NORMAL_BOX_MULLER, NORMAL_POLAR, NORMAL_ZIGGURAT,
+                    EXPONENTIAL, POISSON, BINOMIAL };
 
 distribution check_distribution(std::string name) {
   distribution ret;
   if (name == "uniform") {
     ret = UNIFORM;
-  } else if (name == "normal") {
-    ret = NORMAL;
+  } else if (name == "normal_box_muller") {
+    ret = NORMAL_BOX_MULLER;
+  } else if (name == "normal_polar") {
+    ret = NORMAL_POLAR;
   } else if (name == "normal_ziggurat") {
     ret = NORMAL_ZIGGURAT;
   } else if (name == "exponential") {

@@ -32,6 +32,11 @@ which contains
 * `t_setup`: Wall time (in seconds) for random number initialisation, including allocations on the GPU
 * `t_sample`: Wall time (in seconds) for carrying out the samples
 
+Suported distributions are:
+
+* both `curand` and `dustrand`: `uniform`, `normal_box_muller`, `poisson`
+* `dustrand` only: `normal_polar`, `normal_ziggurat`, `exponential`, `binomial`
+
 The script `bench.py` will run the benchmark programs with varying `n_threads` and `n_draws` to create the file `data/uniform.csv` (this script requires python3 but only standard modules).  This should require a minute or so to run.
 
 The script `plot.R` will make some plots with this output.

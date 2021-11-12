@@ -45,15 +45,33 @@ void sample_uniform(rng_int_type * rng_state_data,
 }
 
 __global__
-void sample_normal(rng_int_type * rng_state_data,
-                   float *draws, size_t n_threads, size_t n_draws) {
+void sample_normal_box_muller(rng_int_type * rng_state_data,
+                              float *draws, size_t n_threads, size_t n_draws) {
   const int dx = blockDim.x * gridDim.x;
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < n_threads; i += dx) {
     auto rng_block = get_rng<rng_state_type>(rng_state_data, i, n_threads);
 
     float draw = 0;
     for (int j = 0; j < n_draws; ++j) {
-      float new_draw = dust::random::random_normal<float>(rng_block);
+      float new_draw = dust::random::random_normal_box_muller<float>(rng_block);
+      draw += new_draw;
+    }
+    draws[i] = draw;
+
+    set_rng(rng_block, rng_state_data, n_threads);
+  }
+}
+
+__global__
+void sample_normal_polar(rng_int_type * rng_state_data,
+                         float *draws, size_t n_threads, size_t n_draws) {
+  const int dx = blockDim.x * gridDim.x;
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < n_threads; i += dx) {
+    auto rng_block = get_rng<rng_state_type>(rng_state_data, i, n_threads);
+
+    float draw = 0;
+    for (int j = 0; j < n_draws; ++j) {
+      float new_draw = dust::random::random_normal_polar<float>(rng_block);
       draw += new_draw;
     }
     draws[i] = draw;
@@ -173,9 +191,13 @@ void run(const char * distribution_name, size_t n_threads, size_t n_draws) {
     sample_uniform<<<blockCount, blockSize>>>(rng_state, draws,
                                               n_threads, n_draws);
     break;
-  case NORMAL:
-    sample_normal<<<blockCount, blockSize>>>(rng_state, draws,
-                                              n_threads, n_draws);
+  case NORMAL_BOX_MULLER:
+    sample_normal_box_muller<<<blockCount, blockSize>>>(rng_state, draws,
+                                                        n_threads, n_draws);
+    break;
+  case NORMAL_POLAR:
+    sample_normal_polar<<<blockCount, blockSize>>>(rng_state, draws,
+                                                   n_threads, n_draws);
     break;
   case NORMAL_ZIGGURAT:
     sample_normal_ziggurat<<<blockCount, blockSize>>>(rng_state, draws,
