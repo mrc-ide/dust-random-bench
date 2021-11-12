@@ -1,17 +1,18 @@
 COMPUTE_VERSION=@compute_version@
 PROFILER_FLAGS=@profiler_flags@
 CXXFLAGS=-O2 -std=c++11 --compiler-options="-Wall"
-CUDAFLAGS=-Xptxas -dlcm=ca --cudart static -gencode arch=compute_$(COMPUTE_VERSION),code=sm_$(COMPUTE_VERSION)
+CUDAFLAGS=-Xptxas -dlcm=ca --cudart static -gencode arch=compute_$(COMPUTE_VERSION),code=sm_$(COMPUTE_VERSION) $(PROFILER_FLAGS)
+DUSTFLAGS=-DDUST_ZIGGURAT_REAL_TYPE=float
 
 TARGETS=curand dustrand
 
 all: $(TARGETS)
 
 curand: curand.cu dust/random
-	nvcc $(CXXFLAGS) $(PROFILER_FLAGS) $(CUDAFLAGS) $< -o $@
+	nvcc $(CXXFLAGS) $(CUDAFLAGS) $< -o $@
 
 dustrand: dustrand.cu dust/random
-	nvcc -I. $(CXXFLAGS) $(PROFILER_FLAGS) $(CUDAFLAGS) $< -o $@
+	nvcc -I. $(CXXFLAGS) $(CUDAFLAGS) $(DUSTFLAGS) $< -o $@
 
 dust/random:
 	./download-dust-random
