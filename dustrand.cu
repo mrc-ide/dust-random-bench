@@ -5,7 +5,7 @@
 #include "common.hpp"
 #include <dust/random/random.hpp>
 
-using rng_state_type = dust::random::xoshiro128plus_state;
+using rng_state_type = dust::random::xoshiro128plus;
 using rng_int_type = rng_state_type::int_type;
 
 template <typename T>
