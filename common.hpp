@@ -4,7 +4,7 @@
 #include <string>
 
 enum distribution { UNIFORM, NORMAL_BOX_MULLER, NORMAL_POLAR, NORMAL_ZIGGURAT,
-                    EXPONENTIAL, POISSON, BINOMIAL };
+                    EXPONENTIAL, POISSON, BINOMIAL, MULTINOMIAL };
 
 distribution check_distribution(std::string name) {
   distribution ret;
@@ -22,6 +22,8 @@ distribution check_distribution(std::string name) {
     ret = POISSON;
   } else if (name == "binomial") {
     ret = BINOMIAL;
+  } else if (name == "multinomial") {
+    ret = MULTINOMIAL;
   } else {
     std::stringstream msg;
     msg << "Invalid distribution: " << name;

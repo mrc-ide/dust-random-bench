@@ -152,6 +152,28 @@ void sample_binomial(rng_int_type * rng_state_data,
   }
 }
 
+__global__
+void sample_multinomial(rng_int_type * rng_state_data,
+                        float *draws, size_t n_threads, size_t n_draws) {
+  const int dx = blockDim.x * gridDim.x;
+  const float prob[4] {0.1, 0.2, 0.3, 0.4};
+  const int prob_len = 4;
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < n_threads; i += dx) {
+    auto rng_block = get_rng<rng_state_type>(rng_state_data, i, n_threads);
+    // this might need work to avoid uncoaleced access by using an
+    // interleaved structure.
+    float res[4];
+    float draw = 0;
+    for (int j = 0; j < n_draws; ++j) {
+      dust::random::multinomial<float>(rng_block, 10, prob, prob_len, res);
+      draw += res[0];
+    }
+    draws[i] = draw;
+
+    set_rng(rng_block, rng_state_data, n_threads);
+  }
+}
+
 void run(const char * distribution_name, size_t n_threads, size_t n_draws) {
   auto distribution_type = check_distribution(distribution_name);
   float* draws;
@@ -214,6 +236,10 @@ void run(const char * distribution_name, size_t n_threads, size_t n_draws) {
   case BINOMIAL:
     sample_binomial<<<blockCount, blockSize>>>(rng_state, draws,
                                                n_threads, n_draws);
+    break;
+  case MULTINOMIAL:
+    sample_multinomial<<<blockCount, blockSize>>>(rng_state, draws,
+                                                  n_threads, n_draws);
     break;
   }
   CUDA_CALL(cudaDeviceSynchronize());
